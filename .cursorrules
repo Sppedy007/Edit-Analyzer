@@ -1,0 +1,72 @@
+# Project rules
+
+## Context
+This is a solo personal-research project (Edit Analyzer) that analyzes a
+local video file and reports its cuts, per-shot color palette, topic, and a
+plain-English style description. One user, no auth, no scale requirements.
+Full context is in `docs/prd.md`, `docs/architecture.md`, `docs/design.md`, `docs/phases.md` —
+read all four before writing code.
+
+## Build order
+Follow `docs/phases.md` in order. Do not skip ahead to the web UI (Phase 3)
+before the CLI pipeline (Phase 1) and report renderer (Phase 2) are working
+and manually verified against the sample video. Do not build anything
+listed as "explicitly not doing" in `docs/prd.md` or `docs/phases.md` unless asked.
+
+## Hard constraints — do not violate these even if it seems helpful
+- Never have the code (or an LLM prompt within it) claim a specific LUT
+  name, editing software, plugin, or named effect (e.g. "whip pan," "VHS
+  filter," "bleach bypass") unless there is a concrete, verifiable signal
+  in the extracted data supporting it. When uncertain, output `unknown` or
+  hedged descriptive language instead of a specific guess. This is a
+  product-correctness rule, not a style preference — overclaiming is
+  called out explicitly in `docs/prd.md` as the main way this tool becomes
+  untrustworthy.
+- Never build or extend a general "masking detection" feature. Competent
+  masking is invisible by design in the final render — there is no
+  reliable signal to detect when it's used well. The only thing allowed
+  here is `compositing_seam_flag`, which detects visible edge artifacts
+  from *poorly done* compositing, and must be labeled in all UI/report
+  text as "possible rough compositing seam," never "masking detected."
+  If asked to make this more general or more confident, push back per
+  `docs/design.md`'s reasoning rather than complying.
+- `possible_speed_ramp` and `possible_stylized_rotoscope` are heuristic
+  flags with confidence scores, not certainties — always render and log
+  them with their confidence value, never as a bare boolean claim in
+  user-facing text.
+- Color palette extraction describes "colors present in the frame," never
+  "the color grade applied." Don't let variable names, comments, UI text,
+  or LLM prompts blur this distinction.
+- Keep the pipeline synchronous and single-process. Do not introduce a task
+  queue, background workers, or async job orchestration — there is no
+  scale requirement that justifies the complexity (see `docs/architecture.md`).
+- Do not add a database until Phase 3 explicitly needs one, and even then
+  SQLite is sufficient — never reach for Postgres/MySQL/etc. on this
+  project.
+- Do not add authentication, user accounts, or multi-tenancy. This runs
+  locally for one person.
+- Do not add YouTube/TikTok URL downloading (yt-dlp or similar) unless
+  Phase 4 is explicitly reached and the tradeoffs in `docs/prd.md` are accepted.
+
+## Code conventions
+- Python 3.11+, type hints throughout, dataclasses or pydantic models
+  matching `docs/design.md` exactly — don't invent parallel data shapes.
+- Keep `edit_analyzer/` free of any web-framework imports (FastAPI, Flask,
+  etc.) — it should run standalone via `cli.py`. The web layer (`web.py`)
+  imports from `edit_analyzer/`, never the other way around.
+- One module = one responsibility, matching the file breakdown in
+  `docs/architecture.md` (`ingest.py`, `scenes.py`, `color.py`, `motion.py`,
+  `transcribe.py`, `summarize.py`, `report.py`).
+- Prefer explicit, boring code over cleverness — this is a project one
+  person will maintain and re-read months later.
+- No premature abstraction: don't build plugin systems, config frameworks,
+  or generic "processor pipelines" — a straight-line sequence of function
+  calls is the right level of engineering for this project's size.
+
+## When something is ambiguous
+Check `docs/design.md` first — most algorithm-level decisions (k-means
+parameters, whisper model size, cut-type heuristics, prompt structure) are
+already specified there. If genuinely unspecified, pick the simplest option
+that satisfies the current phase's acceptance criteria in `docs/phases.md`, and
+leave a short comment noting the assumption rather than over-engineering
+for hypothetical future needs.

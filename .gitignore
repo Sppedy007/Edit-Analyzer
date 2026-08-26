@@ -1,0 +1,45 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.Python
+build/
+dist/
+
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+
+# --- Env / secrets ---
+.env
+*.env
+*.key
+
+# --- Project data (ignore processing jobs and video binaries, keep folder structure) ---
+data/*
+!data/samples/
+!data/samples/README.md
+!data/samples/.gitkeep
+data/samples/*.mp4
+data/samples/*.wav
+data/samples/*.avi
+data/samples/*.mov
+data/samples/*.mkv
+
+# --- Whisper / model caches ---
+*.pt
+*.bin
+models/
+.cache/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Jupyter ---
+.ipynb_checkpoints/
